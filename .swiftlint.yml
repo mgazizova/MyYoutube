@@ -1,0 +1,13 @@
+disabled_rules:
+  - trailing_whitespace
+
+custom_rules:
+  avoid_qwerty:
+    included:
+      - ".*\\.swift"
+    name: "QWERTY in code"
+    regex: "[Qq][Ww][Ee][Rr][Tt][Yy]"
+    match_kinds:
+      - identifier
+    message: "Don't use qwerty in your code"
+    severity: error
