@@ -144,7 +144,10 @@ extension VideoViewController: ActionDelegate {
 extension VideoViewController {
     private func showAlert(withError: CustomError) {
         let alert = UIAlertController(title: "Error", message: withError.errorDescription, preferredStyle: .alert)
+        // swiftlint:disable todo
         // TODO: do alert well
+        // swiftlint:enable todo
+        // TODO: another todo without ignore
     }
 
     private func handleRateResult(result: Result<Data?, CustomError>) {
