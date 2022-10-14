@@ -6,69 +6,17 @@
 //
 
 import UIKit
-import SwiftUI
-
-enum Action {
-    case like
-    case dislike
-    case nonReaction
-    case share
-
-    func getName() -> String {
-        switch self {
-        case .like:
-            return "Like"
-        case .dislike:
-            return "Dislike"
-        case .nonReaction:
-            return "nonReaction"
-        case .share:
-            return "Share"
-        }
-    }
-
-    func getIcon() -> UIImage? {
-        switch self {
-        case .like:
-            return UIImage(named: "like.png")
-        case .dislike:
-            return UIImage(named: "dislike.png")
-        case .nonReaction:
-            return nil
-        case .share:
-            return UIImage(named: "share.png")
-        }
-    }
-
-    func getTappedIcon() -> UIImage? {
-        switch self {
-        case .like:
-            return UIImage(named: "like_filled.png")
-        case .dislike:
-            return UIImage(named: "dislike_filled.png")
-        case .nonReaction:
-            return nil
-        case .share:
-            return UIImage(named: "share.png")
-        }
-    }
-}
 
 class ActionsCell: UITableViewCell {
     static let reuseId = "actionsCell"
 
-    private var likeButton: ActionButton?
-    private var dislikeButton: ActionButton?
-    private var shareButton: ActionButton?
+    private let actionsStackView = UIStackView()
 
-    private var liked = false
-    private var disliked = false
+    private var likeButton = ActionButton()
+    private var dislikeButton = ActionButton()
+    private var shareButton = ActionButton()
 
     var actionExecutor: ActionDelegate?
-
-    var video: Video?
-
-    private let actionsStackView = UIStackView()
 
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
@@ -76,6 +24,7 @@ class ActionsCell: UITableViewCell {
 
         addSubviews()
         setConstrains()
+        configure()
         configureSubviews()
     }
 
@@ -103,69 +52,69 @@ class ActionsCell: UITableViewCell {
         actionsStackView.distribution = .equalSpacing
     }
 
-    private func configureActionButtons() {
-        likeButton = ActionButton()
-        if let video = video {
-            likeButton?.setContent(image: Action.like.getIcon(),
-                                   text: video.getLikeCount().mixedRepresentation())
-        }
-
-        dislikeButton = ActionButton()
-        dislikeButton?.setContent(image: Action.dislike.getIcon(), text: Action.dislike.getName())
-
-        shareButton = ActionButton()
-        shareButton?.setContent(image: Action.share.getIcon(), text: Action.share.getName())
-
-        actionsStackView.addArrangedSubview(likeButton!)
-        actionsStackView.addArrangedSubview(dislikeButton!)
-        actionsStackView.addArrangedSubview(shareButton!)
-
-        likeButton?.addTarget(self, action: #selector(tapLike), for: .touchUpInside)
-        dislikeButton?.addTarget(self, action: #selector(tapDislike), for: .touchUpInside)
-        shareButton?.addTarget(self, action: #selector(tapShare), for: .touchUpInside)
-    }
-
     private func sendAction(_ action: Action) {
         actionExecutor?.execute(action: action)
     }
 
-    @objc func tapLike() {
-        guard let video = video else { return }
+    func configure() {
+        clearLike(with: 0)
+        clearDislike()
+        shareButton.setContent(image: Action.share.getIcon(), text: Action.share.getName())
 
+        actionsStackView.addArrangedSubview(likeButton)
+        actionsStackView.addArrangedSubview(dislikeButton)
+        actionsStackView.addArrangedSubview(shareButton)
+
+        likeButton.addTarget(self, action: #selector(tapLike), for: .touchUpInside)
+        dislikeButton.addTarget(self, action: #selector(tapDislike), for: .touchUpInside)
+        shareButton.addTarget(self, action: #selector(tapShare), for: .touchUpInside)
+    }
+
+    func configure(with likeCount: Int, liked: Bool, disliked: Bool) {
         if liked {
-            sendAction(Action.nonReaction)
-            likeButton?.setContent(image: Action.like.getIcon(), text: video.getLikeCount().mixedRepresentation())
-        } else {
-            sendAction(Action.like)
-            likeButton?.setContent(image: Action.like.getTappedIcon(),
-                                   text: (video.getLikeCount() + 1).mixedRepresentation())
-            dislikeButton?.setContent(image: Action.dislike.getIcon(), text: Action.dislike.getName())
+            clearDislike()
+            fillLike(with: likeCount)
+            return
         }
-        liked = !liked
-        disliked = false
+        if disliked {
+            clearLike(with: likeCount)
+            fillDislike(with: likeCount)
+            return
+        }
+        clearLike(with: likeCount)
+        clearDislike()
+    }
+
+    @objc func tapLike() {
+        sendAction(Action.like)
     }
 
     @objc func tapDislike() {
-        guard let video = video else { return }
-
-        if disliked {
-            sendAction(Action.nonReaction)
-            dislikeButton?.setContent(image: Action.dislike.getIcon(), text: Action.dislike.getName())
-        } else {
-            sendAction(Action.dislike)
-            dislikeButton?.setContent(image: Action.dislike.getTappedIcon(), text: Action.dislike.getName())
-            likeButton?.setContent(image: Action.like.getIcon(), text: video.getLikeCount().mixedRepresentation())
-        }
-        disliked = !disliked
-        liked = false
+        sendAction(Action.dislike)
     }
 
     @objc func tapShare() {
-        sendAction(Action.nonReaction)
+        sendAction(Action.share)
+    }
+}
+
+extension ActionsCell {
+    func fillLike(with likeCount: Int) {
+        likeButton.setContent(image: Action.like.getTappedIcon(),
+                               text: likeCount.mixedRepresentation())
+        dislikeButton.setContent(image: Action.dislike.getIcon(), text: Action.dislike.getName())
     }
 
-    func configure(with video: Video) {
-        self.video = video
-        configureActionButtons()
+    func fillDislike(with likeCount: Int) {
+        dislikeButton.setContent(image: Action.dislike.getTappedIcon(), text: Action.dislike.getName())
+        likeButton.setContent(image: Action.like.getIcon(), text: likeCount.mixedRepresentation())
+    }
+
+    func clearLike(with likeCount: Int) {
+        likeButton.setContent(image: Action.like.getIcon(), text: likeCount.mixedRepresentation())
+    }
+
+    func clearDislike() {
+        dislikeButton.setContent(image: Action.dislike.getIcon(), text: Action.dislike.getName())
     }
 }

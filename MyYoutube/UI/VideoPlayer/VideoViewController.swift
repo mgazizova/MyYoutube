@@ -18,6 +18,9 @@ class VideoViewController: UIViewController, UITableViewDelegate {
     private let tableView = UITableView()
     private let youTubeManager = YouTubeApiManager()
 
+    var liked = false
+    var disliked = false
+
     override func viewDidLoad() {
         super.viewDidLoad()
         self.view.backgroundColor = .white
@@ -43,6 +46,29 @@ class VideoViewController: UIViewController, UITableViewDelegate {
                     authorizeCompletion(.success(nil))
                 case .failure(let error):
                     authorizeCompletion(.failure(error))
+                }
+            }
+        }
+
+        if let user = AuthenticationService.shared.user, let video = video {
+            youTubeManager.getRating(video: video.getId()) { [weak self] result in
+                switch result {
+                case .success(let rate):
+                    switch rate {
+                    case .like:
+                        self?.liked = true
+                        self?.disliked = false
+                        self?.reloadActionBar()
+                    case .dislike:
+                        self?.liked = false
+                        self?.disliked = false
+                        self?.reloadActionBar()
+                    case .none:
+                        self?.liked = false
+                        self?.disliked = false
+                    }
+                case .failure(let error):
+                    break
                 }
             }
         }
@@ -107,29 +133,62 @@ extension VideoViewController: UITableViewDataSource {
                     return UITableViewCell()
                 }
             actionsCell.actionExecutor = self
-            actionsCell.configure(with: video)
+            actionsCell.configure(with: video.getLikeCount(), liked: liked, disliked: disliked)
             return actionsCell
         default: fatalError()
+        }
+    }
+
+    func reloadActionBar() {
+        let indexPath = IndexPath(row: 3, section: 0)
+        DispatchQueue.main.async {
+            self.tableView.reloadRows(at: [indexPath], with: .none)
         }
     }
 }
 
 extension VideoViewController: ActionDelegate {
     func execute(action: Action) {
-
         guard let video = video else { return }
         switch action {
         case .like:
+            if liked {
+                execute(action: Action.nonReaction)
+                return
+            }
             youTubeManager.rate(video: video.getId(), with: Rate.like) { [weak self] result in
-                self?.handleRateResult(result: result)
-            }
+                switch result {
+                case .success(_):
+                    self?.liked = true
+                    self?.disliked = false
+                    self?.reloadActionBar()
+                case .failure(let error):
+                    break
+                }}
         case .dislike:
-            youTubeManager.rate(video: video.getId(), with: Rate.dislike) { [weak self] result in
-                self?.handleRateResult(result: result)
+            if disliked {
+                execute(action: Action.nonReaction)
+                return
             }
+            youTubeManager.rate(video: video.getId(), with: Rate.dislike) { [weak self] result in
+                switch result {
+                case .success(_):
+                    self?.liked = false
+                    self?.disliked = true
+                    self?.reloadActionBar()
+                case .failure(let error):
+                    break
+                }}
         case .nonReaction:
             youTubeManager.rate(video: video.getId(), with: Rate.none) { [weak self] result in
-                 self?.handleRateResult(result: result)
+                switch result {
+                case .success(_):
+                    self?.liked = false
+                    self?.disliked = false
+                    self?.reloadActionBar()
+                case .failure(let error):
+                    break
+                }
             }
         case .share:
             guard let link = YouTubeEndPoint.watchVideo(videoId: video.getId()).fullURL else { return }
@@ -137,22 +196,6 @@ extension VideoViewController: ActionDelegate {
             let activityViewController = UIActivityViewController(activityItems: [link], applicationActivities: nil)
             activityViewController.popoverPresentationController?.sourceView = self.view
             present(activityViewController, animated: true, completion: nil)
-        }
-    }
-}
-
-extension VideoViewController {
-    private func showAlert(withError: CustomError) {
-        let alert = UIAlertController(title: "Error", message: withError.errorDescription, preferredStyle: .alert)
-        // TODO: do alert well
-    }
-
-    private func handleRateResult(result: Result<Data?, CustomError>) {
-        switch result {
-        case .success(_):
-            break
-        case .failure(let error):
-            showAlert(withError: error)
         }
     }
 }

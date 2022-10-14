@@ -5,14 +5,39 @@
 //  Created by Мария Газизова on 25.07.2022.
 //
 import Foundation
-//TODO: check structure of parameters in json
+
 struct FeedModel: Decodable {
     let items: [VideoItemModel]?
     let regionCode: String?
     let nextPageToken: String?
     let prevPageToken: String?
     let error: ErrorModel?
+}
 
+struct VideoItemModel: Decodable {
+    let etag: String
+    let kind: String
+    let id: String
+    let snippet: VideoSnippetModel
+    let statistics: VideoStatisticsModel
+}
+
+struct VideoSnippetModel: Decodable {
+    let title: String
+    let description: String
+    let channelId: String
+    let channelTitle: String
+    let publishedAt: String
+    let thumbnails: ThumbnailsModel
+}
+
+struct VideoStatisticsModel: Decodable {
+    let viewCount: String
+    let likeCount: String?
+    let commentCount: String?
+}
+
+extension FeedModel {
     func getVideoTitle(withIndex: Int) -> String? {
         guard let items = items else { return nil }
         return items[withIndex].getTitle()
@@ -42,13 +67,7 @@ struct FeedModel: Decodable {
     }
 }
 
-struct VideoItemModel: Decodable {
-    let etag: String
-    let kind: String
-    let id: String
-    let snippet: VideoSnippetModel
-    let statistics: VideoStatisticsModel
-
+extension VideoItemModel {
     func getId() -> String {
         return id
     }
@@ -86,25 +105,10 @@ struct VideoItemModel: Decodable {
     }
 
     func getLikeCount() -> String {
-        return statistics.likeCount
+        return statistics.likeCount ?? "0"
     }
 
     func getCommentCount() -> String? {
         return statistics.commentCount
     }
-}
-
-struct VideoSnippetModel: Decodable {
-    let title: String
-    let description: String
-    let channelId: String
-    let channelTitle: String
-    let publishedAt: String
-    let thumbnails: ThumbnailsModel
-}
-
-struct VideoStatisticsModel: Decodable {
-    let viewCount: String
-    let likeCount: String
-    let commentCount: String?
 }

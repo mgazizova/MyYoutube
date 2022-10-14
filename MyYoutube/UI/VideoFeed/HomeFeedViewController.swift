@@ -34,7 +34,7 @@ class HomeFeedViewController: UIViewController, UITableViewDataSource, UITableVi
 
     private func showAlert(withError: CustomError) {
         let alert = UIAlertController(title: "Error", message: withError.errorDescription, preferredStyle: .alert)
-        //TODO: do alert well
+        // TODO: do alert well
     }
 }
 

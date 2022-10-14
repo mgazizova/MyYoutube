@@ -38,7 +38,7 @@ class VideoTableViewCell: UITableViewCell {
             thumbnailImage.topAnchor.constraint(equalTo: self.contentView.topAnchor, constant: 16),
             thumbnailImage.leftAnchor.constraint(equalTo: self.contentView.leftAnchor, constant: 16),
             thumbnailImage.rightAnchor.constraint(equalTo: self.contentView.rightAnchor, constant: -16),
-            //TODO: How does it work?
+            // TODO: How does it work?
             thumbnailImage.heightAnchor.constraint(equalToConstant: self.contentView.frame.width * 9 / 16)
         ])
 

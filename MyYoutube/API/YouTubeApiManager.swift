@@ -16,9 +16,11 @@ class YouTubeApiManager {
     typealias FeedHandler = (Result<FeedModel, CustomError>) -> Void
     typealias ChannelsHandler = (Result<ChannelsModel, CustomError>) -> Void
     typealias RateHandler = (Result<Data?, CustomError>) -> Void
+    typealias GetRateHandler = (Result<Rate, CustomError>) -> Void
 
     func fetchFeedItems(pageToken: String?, completion: @escaping FeedHandler) {
         guard let url = YouTubeEndPoint.feedListWithSnippets(accessKey: apiKey, pageToken: pageToken).fullURL else {
+            // TODO: describe the errors
             completion(.failure(CustomError.wrongURL))
             return
         }
@@ -36,7 +38,7 @@ class YouTubeApiManager {
                     completion(.success(feed))
                 }
             } catch let error as NSError {
-                //TODO: describe the errors
+                // TODO: describe the errors
                 print("Error in feed items")
             }
         }).resume()
@@ -44,6 +46,7 @@ class YouTubeApiManager {
 
     func fetchChannelsItems(channelsIds: [String], completion: @escaping ChannelsHandler) {
         guard let url = YouTubeEndPoint.channelInfoSnippet(accessKey: apiKey, channelsIds: channelsIds).fullURL else {
+            // TODO: describe the errors
             completion(.failure(CustomError.wrongURL))
             return
         }
@@ -62,7 +65,7 @@ class YouTubeApiManager {
                     completion(.success(channels))
                 }
             } catch let error as NSError {
-                //TODO: describe the errors
+                // TODO: describe the errors
                 print("Error in fetch channels")
             }
         }).resume()
@@ -81,12 +84,25 @@ class YouTubeApiManager {
             }
         }
 
+        getRating(video: video) { [weak self] result in
+            switch result {
+            case .success(let currentRating):
+                if currentRating == rate {
+                    completion(.success(nil))
+                }
+            case .failure(let error):
+                // TODO: handle error
+                break
+            }
+        }
+
         guard let url = YouTubeEndPoint.rateVideo(videoId: video, rate: rate).fullURL else {
+            // TODO: describe the error
             completion(.failure(CustomError.wrongURL))
             return
         }
         guard let user = AuthenticationService.shared.user else {
-            //TODO: change error
+            // TODO: change error
             completion(.failure(CustomError.wrongURL))
             return
         }
@@ -105,8 +121,43 @@ class YouTubeApiManager {
                     completion(.success(data!))
                 }
             } catch let error as NSError {
-                //TODO: describe the errors
+                // TODO: describe the errors
                 print("Error in rate")
+            }
+        }).resume()
+    }
+
+    func getRating(video: String, completion: @escaping GetRateHandler) {
+        guard let url = YouTubeEndPoint.getRating(videoId: video).fullURL else {
+            // TODO: change error
+            completion(.failure(CustomError.wrongURL))
+            return
+        }
+
+        guard let user = AuthenticationService.shared.user else {
+            // TODO: change error
+            completion(.failure(CustomError.wrongURL))
+            return
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.addValue("Bearer \(user.authentication.accessToken)", forHTTPHeaderField: "Authorization")
+
+        let session = URLSession.shared
+        session.dataTask(with: request as URLRequest, completionHandler: { data, response, error -> Void in
+            do {
+                if let error = error { throw error }
+
+                if let data = data {
+                    let rating: RatingModel = try JSONDecoder().decode(RatingModel.self, from: data)
+                    if let rate = rating.getRating(by: 0) {
+                        completion(.success(rate))
+                    }
+                }
+            } catch let error as NSError {
+                // TODO: describe the errors
+                print("Error in get rate")
             }
         }).resume()
     }

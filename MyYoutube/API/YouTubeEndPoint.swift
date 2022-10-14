@@ -1,58 +1,18 @@
 //
-//  URLComponents.swift
+//  YouTubeEndPoint.swift
 //  MyYoutube
 //
-//  Created by Мария Газизова on 25.07.2022.
+//  Created by Мария Газизова on 14.10.2022.
 //
 
 import Foundation
-import WebKit
-
-protocol URLCustomComponents {
-    var baseURL: String { get }
-    var path: String { get }
-    var params: [(String, String)] { get }
-    var fullURL: URL? { get }
-}
-
-extension URLCustomComponents {
-    var fullURL: URL? {
-        guard let url = URL(string: baseURL) else { return nil }
-
-        var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
-        components?.path = path
-        components?.setQueryItems(with: params)
-        return components?.url
-    }
-}
-
-extension URLComponents {
-    mutating func setQueryItems(with parameters: [(String, String)]) {
-        self.queryItems = parameters.map { URLQueryItem(name: $0.0, value: $0.1) }
-    }
-}
-enum Rate {
-    case like
-    case dislike
-    case none
-
-    func getName() -> String {
-        switch self {
-        case .like:
-            return "like"
-        case .dislike:
-            return "dislike"
-        case .none:
-            return "none"
-        }
-    }
-}
 
 enum YouTubeEndPoint {
     case feedListWithSnippets(accessKey: String, pageToken: String?)
     case channelInfoSnippet(accessKey: String, channelsIds: [String])
     case watchVideo(videoId: String)
     case rateVideo(videoId: String, rate: Rate)
+    case getRating(videoId: String)
 }
 
 extension YouTubeEndPoint: URLCustomComponents {
@@ -63,7 +23,7 @@ extension YouTubeEndPoint: URLCustomComponents {
             return "https://youtube.googleapis.com"
         case .watchVideo:
             return "https://www.youtube.com"
-        case .rateVideo:
+        case .rateVideo, .getRating:
             return "https://www.googleapis.com"
         }
     }
@@ -78,6 +38,8 @@ extension YouTubeEndPoint: URLCustomComponents {
             return "/watch"
         case .rateVideo:
             return "/youtube/v3/videos/rate"
+        case .getRating:
+            return "/youtube/v3/videos/getRating"
         }
     }
 
@@ -106,10 +68,16 @@ extension YouTubeEndPoint: URLCustomComponents {
             return [
                 ("v", videoId)
             ]
+
         case let .rateVideo(videoId, rate):
             return [
                 ("id", videoId),
-                ("rating", rate.getName())
+                ("rating", rate.rawValue)
+            ]
+
+        case let .getRating(videoId):
+            return [
+                ("id", videoId)
             ]
         }
     }
